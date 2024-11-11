@@ -1,5 +1,5 @@
-import  jsonwebtoken  from "jsonwebtoken";
-import { CreateAddressDto } from "../dto/createAddress.dto";
+import jsonwebtoken from "jsonwebtoken";
+import { AddressDto } from "../dto/createAddress.dto";
 import Address from "../entity/address.entity";
 import Employee from "../entity/employee.entity";
 import EmployeeRepository from "../repository/employee.repository";
@@ -9,6 +9,9 @@ import { jwtPayload } from "../utils/jwtPayload";
 import { ErrorCodes } from "../utils/error.codes";
 import EntityNotFoundException from "../excpetion/enitityNotFoundExcpetion";
 import IncorrectPasswordException from "../excpetion/incorrectPasswordException";
+import Department from "../entity/department.entity";
+import { UpdateEmployeeDto } from "../dto/updateEmployee.dto";
+
 class EmployeeService {
   constructor(private employeeRepository: EmployeeRepository) {}
 
@@ -21,9 +24,10 @@ class EmployeeService {
   createEmployee = async (
     email: string,
     name: string,
-    address: CreateAddressDto,
+    address: AddressDto,
     password: string,
-    role: Role
+    role: Role,
+    department: number
   ): Promise<Employee> => {
     const newEmployee = new Employee();
     newEmployee.email = email;
@@ -37,15 +41,29 @@ class EmployeeService {
 
     newEmployee.address = newAddress;
 
+    const newDepartment = new Department();
+    newDepartment.id = department;
+    newEmployee.department = newDepartment;
+
     return this.employeeRepository.save(newEmployee);
   };
-  deleteEmployee = async (id: number): Promise<void> => {
+  deleteEmployee = async (id: number): Promise<Employee> => {
     const employee = await this.getEmployeeById(id);
-    await this.employeeRepository.softRemove(employee);
+    return this.employeeRepository.softRemove(employee);
   };
-  updateEmployee = async (employee: Employee): Promise<Employee> => {
-    employee.password = await bcrypt.hash(employee.password, 10);
-    return this.employeeRepository.update(employee);
+  updateEmployee = async (
+    employee: UpdateEmployeeDto,
+    curremployee: Employee
+  ): Promise<Employee> => {
+    if (employee.address) {
+      curremployee.address.line1 = employee.address.line1;
+      curremployee.address.pincode = employee.address.pincode;
+      delete employee.address;
+    }
+
+    Object.assign(curremployee, employee);
+    curremployee.password = await bcrypt.hash(curremployee.password, 10);
+    return this.employeeRepository.update(curremployee);
   };
 
   loginEmployee = async (email: string, password: string) => {

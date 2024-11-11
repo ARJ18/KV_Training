@@ -4,8 +4,9 @@ import {
   ValidateNested,
   IsOptional,
   IsEnum,
+  IsNumber,
 } from "class-validator";
-import { CreateAddressDto } from "./createAddress.dto";
+import { AddressDto } from "./createAddress.dto";
 import "reflect-metadata";
 import { Type } from "class-transformer";
 import { Role } from "../utils/role.enum";
@@ -21,8 +22,8 @@ export class UpdateEmployeeDto {
 
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => CreateAddressDto)
-  address?: CreateAddressDto;
+  @Type(() => AddressDto)
+  address?: AddressDto;
 
   @IsOptional()
   @IsString()
@@ -31,4 +32,8 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsEnum(Role)
   role?: Role;
+
+  @IsOptional()
+  @IsNumber()
+  department?: number;
 }

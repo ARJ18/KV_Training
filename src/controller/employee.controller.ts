@@ -9,7 +9,7 @@ import IncorrectPasswordException from "../excpetion/incorrectPasswordException"
 import { ErrorCodes } from "../utils/error.codes";
 import authorize from "../middleware/authorize.middleware";
 import { RequestWithUser } from "../utils/requestWithUser";
-
+import EntityNotFoundException from "../excpetion/enitityNotFoundExcpetion";
 class EmployeeController {
   public router: express.Router;
 
@@ -18,18 +18,17 @@ class EmployeeController {
 
     this.router.get("/", this.getAllEmployees);
     this.router.get("/:id", this.getEmployeeById);
-    this.router.post("/",authorize, this.createEmployee);
-    this.router.put("/:id", this.updateEmployee);
-    this.router.delete("/:id", this.deleteEmployee);
-    this.router.post("/login",this.loginEmployee);
+    this.router.post("/", authorize, this.createEmployee);
+    this.router.put("/:id", authorize, this.updateEmployee);
+    this.router.delete("/:id", authorize, this.deleteEmployee);
+    this.router.post("/login", this.loginEmployee);
   }
 
   getAllEmployees = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const employees = await this.employeeService.getAllEmployees();
       if (employees.length == 0) {
-        const error = new Error("No employees found");
-        throw error;
+        throw new EntityNotFoundException(ErrorCodes.NO_EMPLOYEES_FOUND);
       }
       res.status(200).send(employees);
     } catch (error) {
@@ -42,8 +41,7 @@ class EmployeeController {
       const employeeId = Number(req.params.id);
       const employee = await this.employeeService.getEmployeeById(employeeId);
       if (!employee) {
-        const error = new Error(`No employee found with id: ${req.params.id}`);
-        throw error;
+        throw new EntityNotFoundException(ErrorCodes.EMPLOYEE_WITH_ID_NO_FOUND);
       }
       res.status(200).send(employee);
     } catch (error) {
@@ -57,11 +55,10 @@ class EmployeeController {
     next: NextFunction
   ) => {
     try {
-      // const { email, name, address } = req.body;
-      if(req.role!="HR")
-      {
+      if (req.role != "HR") {
         throw new IncorrectPasswordException(ErrorCodes.UNAUTHORIZED);
       }
+
       const employee = plainToInstance(CreateEmployeeDto, req.body);
       const errors = await validate(employee);
 
@@ -69,27 +66,48 @@ class EmployeeController {
         console.log(JSON.stringify(errors));
         throw new HttpException(400, JSON.stringify(errors));
       }
- 
-    
+
       const savedEmployee = await this.employeeService.createEmployee(
         employee.email,
         employee.name,
         employee.address,
         employee.password,
-        employee.role
+        employee.role,
+        employee.department
       );
       res.status(200).send(savedEmployee);
     } catch (error) {
       next(error);
     }
   };
-  deleteEmployee = async (req: express.Request, res: express.Response) => {
-    const employeeId = Number(req.params.id);
-    await this.employeeService.deleteEmployee(employeeId);
-    res.status(200).send();
-  };
-  updateEmployee = async (req: Request, res: Response, next: NextFunction) => {
+  deleteEmployee = async (
+    req: RequestWithUser,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
+      if (req.role != "HR") {
+        throw new IncorrectPasswordException(ErrorCodes.UNAUTHORIZED);
+      }
+      const employeeId = Number(req.params.id);
+      const employee = await this.employeeService.deleteEmployee(employeeId);
+      if (!employee) {
+        throw new EntityNotFoundException(ErrorCodes.EMPLOYEE_WITH_ID_NO_FOUND);
+      }
+      res.status(200).send(employee);
+    } catch (error) {
+      next(error);
+    }
+  };
+  updateEmployee = async (
+    req: RequestWithUser,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      if (req.role != "HR") {
+        throw new IncorrectPasswordException(ErrorCodes.UNAUTHORIZED);
+      }
       const employee = plainToInstance(UpdateEmployeeDto, req.body);
       const errors = await validate(employee);
 
@@ -100,9 +118,12 @@ class EmployeeController {
 
       const id = parseInt(req.params.id);
       const curremployee = await this.employeeService.getEmployeeById(id);
+      if (!curremployee) {
+        throw new EntityNotFoundException(ErrorCodes.EMPLOYEE_WITH_ID_NO_FOUND);
+      }
 
-      Object.assign(curremployee, req.body);
       const savedEmployee = await this.employeeService.updateEmployee(
+        employee,
         curremployee
       );
       res.status(200).send(savedEmployee);
@@ -111,16 +132,15 @@ class EmployeeController {
     }
   };
 
-  loginEmployee=async (req:Request,res:Response,next:NextFunction)=>{
-    const {email, password} = req.body;
-    try{
-
-      const token = await this.employeeService.loginEmployee(email,password);
+  loginEmployee = async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password } = req.body;
+    try {
+      const token = await this.employeeService.loginEmployee(email, password);
       res.status(200).send(token);
-    }catch(error)
-    {next(error)}
-
-  }
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default EmployeeController;
