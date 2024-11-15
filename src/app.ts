@@ -6,10 +6,11 @@ import employeeRouter from "./routes/employee.routes";
 import errorMiddleware from "./middleware/error.middleware";
 import "reflect-metadata";
 import departmentRouter from "./routes/department.routes";
-
+import cors from "cors"
 const app = express();
 const PORT = 3000;
 
+app.use(cors());
 app.use(bodyParser.json());
 app.use(loggerMiddleware);
 
