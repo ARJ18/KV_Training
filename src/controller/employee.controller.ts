@@ -18,9 +18,9 @@ class EmployeeController {
 
     this.router.get("/", this.getAllEmployees);
     this.router.get("/:id", this.getEmployeeById);
-    this.router.post("/", authorize, this.createEmployee);
-    this.router.put("/:id", authorize, this.updateEmployee);
-    this.router.delete("/:id", authorize, this.deleteEmployee);
+    this.router.post("/", authorize,this.createEmployee);
+    this.router.put("/:id",authorize, this.updateEmployee);
+    this.router.delete("/:id",authorize, this.deleteEmployee);
     this.router.post("/login", this.loginEmployee);
   }
 
@@ -136,7 +136,7 @@ class EmployeeController {
     const { email, password } = req.body;
     try {
       const token = await this.employeeService.loginEmployee(email, password);
-      res.status(200).send(token);
+      res.status(200).send({token:token});
     } catch (error) {
       next(error);
     }

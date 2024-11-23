@@ -1,5 +1,5 @@
 import jsonwebtoken from "jsonwebtoken"
-import { JWT_SECRET } from "../utils/constants";
+import { JWT_SECRET } from "../constants";
 import { jwtPayload } from "../utils/jwtPayload";
 import { RequestWithUser } from "../utils/requestWithUser";
 import { Response,NextFunction } from "express";

@@ -5,7 +5,10 @@ class EmployeeRepository {
   constructor(private repository: Repository<Employee>) {}
 
   find = async (): Promise<Employee[]> => {
-    return this.repository.find({ relations: ["address", "department"] });
+    return this.repository.find({
+      relations: ["address", "department"],
+      withDeleted: true,
+    });
   };
 
   findOne = async (filter: Partial<Employee>): Promise<Employee | null> => {
